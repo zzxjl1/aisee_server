@@ -134,14 +134,14 @@ async def search_news(payload: str, offset: int = 0, limit: int = 20, db: Sessio
 @app.post("/news/{type}")
 async def toggle_news_favorite(type: str, payload: bool = Form(), news_id: int = Form(),
                                token: str = Form(), db: Session = Depends(get_db)):
-    """按类型获取新闻"""
+    """切换新闻收藏、赞"""
     user = curd.get_user_by_token(db, token)
     if user is None:
         return {"success": False, "description": "用户未登录"}
-    if type == "favorite":
+    if type == "favorite": # 收藏
         curd.user_toggle_favorite_news(db, user.id, news_id, payload)
         return {"success": True, "description": "操作成功", "result": payload}
-    elif type == "like":
+    elif type == "like": # 赞
         curd.news_toggle_user_like(db, user.id, news_id,  payload)
         return {"success": True, "description": "操作成功", "result": payload}
 

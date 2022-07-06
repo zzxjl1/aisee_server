@@ -72,6 +72,7 @@ def get_user_favorite_news(db: Session, user_id: int):
 
 
 def get_news_recommand(db: Session, offset: datetime, limit: int = 5):
+    """TODO: 更好的推荐实现"""
     return db.query(models.Article).filter(models.Article.created_at < offset)  \
                                    .order_by(func.random()).limit(limit).all()
 
