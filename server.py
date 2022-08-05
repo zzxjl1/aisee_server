@@ -22,6 +22,7 @@ from ecloud_apis.obj import ECloudOBJ
 from ecloud_apis.nlp import ECloudNLP_Keywords
 from toolutils import to_json_str
 from oauth import QQLogin
+from recommend import recommand_news_by_user
 
 import curd
 import models
@@ -138,10 +139,10 @@ async def toggle_news_favorite(type: str, payload: bool = Form(), news_id: int =
     user = curd.get_user_by_token(db, token)
     if user is None:
         return {"success": False, "description": "用户未登录"}
-    if type == "favorite": # 收藏
+    if type == "favorite":  # 收藏
         curd.user_toggle_favorite_news(db, user.id, news_id, payload)
         return {"success": True, "description": "操作成功", "result": payload}
-    elif type == "like": # 赞
+    elif type == "like":  # 赞
         curd.news_toggle_user_like(db, user.id, news_id,  payload)
         return {"success": True, "description": "操作成功", "result": payload}
 
@@ -177,14 +178,24 @@ def get_news_detail(id: int, token: Optional[str], db: Session = Depends(get_db)
 
 
 @app.get("/news/{type}")
-async def fetch_news_list(type: str, offset: Optional[datetime] = None, limit: int = 5, db: Session = Depends(get_db)):
+async def fetch_news_list(type: str, token: Optional[str], offset: Optional[datetime] = None, limit: int = 5, db: Session = Depends(get_db)):
     """获取新闻列表"""
-    print(type)
+    user = None
+    if token:
+        user = curd.get_user_by_token(db, token)
     news_list = []
-    if offset is None:
-        offset = datetime.now()
+
     if type == "推荐":
-        result = curd.get_news_recommand(db, offset, limit)
+        try:
+            assert user  # 确保用户已登录才运行推荐算法
+            result = recommand_news_by_user(db, user, offset, limit)
+            assert result  # 确保算法返回结果不为空
+        except Exception as e:  # 推荐算法出错或用户未登录
+            print("已回落到随机推荐")  # DEBUG
+            import traceback
+            traceback.print_exc()
+            result = curd.get_news_recommand_random(
+                db, offset, limit)  # 回落到随机获取新闻
     elif type == "最新":
         result = curd.get_latest_news(db, offset, limit)
     else:
@@ -398,14 +409,16 @@ async def get_user_avatar(token: Optional[str] = None, id: Optional[str] = None,
         path = f'./avatar/{user.avatar}'  # 头像路径
     return StreamingResponse(open(path, "rb"), media_type="image/jpeg")  # 返回头像
 
+
 @app.get("/user/avatar/{img_file}")
 async def get_user_avatar(img_file: str, db: Session = Depends(get_db)):
     """获取用户头像（通过静态文件名）"""
     print(img_file)
-    path = f'./avatar/{img_file}' # 头像路径
-    if not os.path.exists(path): # 如果文件不存在
-        path = './avatar/default.jpg' # 默认头像
-    return StreamingResponse(open(path, "rb"), media_type="image/jpeg") # 返回头像
+    path = f'./avatar/{img_file}'  # 头像路径
+    if not os.path.exists(path):  # 如果文件不存在
+        path = './avatar/default.jpg'  # 默认头像
+    return StreamingResponse(open(path, "rb"), media_type="image/jpeg")  # 返回头像
+
 
 @app.get("/user/details")
 async def get_user_detail(token: str, db: Session = Depends(get_db)):

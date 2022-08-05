@@ -47,6 +47,7 @@ class ViewHistory(Base):
     duration = Column(Integer)
 
     owner = relationship("User", back_populates="view_history")
+    article = relationship("Article", back_populates="view_history")
 
 
 class Article(Base):
@@ -71,6 +72,8 @@ class Article(Base):
     author = relationship("User", back_populates="articles")
     comments = relationship(
         "Comment", back_populates="article", lazy="dynamic")
+    view_history = relationship(
+        "ViewHistory", back_populates="article", lazy="dynamic")
 
 
 class Comment(Base):

@@ -9,3 +9,4 @@ SQLAlchemy==1.4.37
 uvicorn==0.17.6
 uvloop==0.16.0
 websockets==10.3
+jieba

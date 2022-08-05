@@ -71,13 +71,17 @@ def get_user_favorite_news(db: Session, user_id: int):
 #################################################
 
 
-def get_news_recommand(db: Session, offset: datetime, limit: int = 5):
+def get_news_recommand_random(db: Session, offset: datetime, limit: int = 5):
     """TODO: 更好的推荐实现"""
+    if offset is None:
+        offset = datetime.now()
     return db.query(models.Article).filter(models.Article.created_at < offset)  \
                                    .order_by(func.random()).limit(limit).all()
 
 
 def get_latest_news(db: Session, offset: datetime, limit: int = 5):
+    if offset is None:
+        offset = datetime.now()
     return db.query(models.Article).filter(models.Article.created_at < offset) \
                                    .order_by(desc(models.Article.created_at)).limit(limit).all()
 
@@ -87,6 +91,8 @@ def get_news(db: Session, news_id: int):
 
 
 def get_news_by_category(db: Session, category: str, offset: datetime, limit: int = 5):
+    if offset is None:
+        offset = datetime.now()
     return db.query(models.Article) \
              .filter(and_(models.Article.category == category, models.Article.created_at < offset)) \
              .order_by(desc(models.Article.created_at)).limit(limit).all()
@@ -156,8 +162,9 @@ def update_news_last_view_time(db: Session, news_id: int):
 
 
 def get_news_most_viewed(db: Session, limit: int = 5):
-    result = db.query(models.Article).order_by(
-        desc(models.Article.click_count)).limit(limit).all()
+    result = db.query(models.Article)\
+        .order_by(desc(models.Article.click_count))\
+        .limit(limit).all()
     return [i.title for i in result]
 
 
@@ -187,6 +194,11 @@ def insert_view_history(db: Session, view_history: schemas.ViewHistory):
     db.refresh(db_history)
     return db_history
 
+
+def get_view_history_by_user_id(db: Session, user_id: int, limit: int = 50):
+    return db.query(models.ViewHistory)\
+        .filter(models.ViewHistory.user_id == user_id)\
+        .limit(limit).all()
 
 #################################################
 # 以下为 COMMENT
